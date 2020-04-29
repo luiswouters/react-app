@@ -6,6 +6,8 @@ import PropTypes from "prop-types";
 import { bindActionCreators } from "redux";
 import CourseList from "./CoursesList";
 import { Redirect } from "react-router-dom";
+import Spinner from "../core/Spinner";
+import { toast } from "react-toastify";
 
 //Component in class format
 class CoursesPage extends React.Component {
@@ -31,19 +33,37 @@ class CoursesPage extends React.Component {
       });
     }
   }
+  //Async function handles promisses in the background. It`s an alternative to then/catch promise
+  handleDeleteCourse = async (course) => {
+    toast.success("Course deleted.");
+    try {
+      await this.props.actions.deleteCourse(course);
+    } catch (error) {
+      toast.error("Delete failed" + error.message, { autoClose: false });
+    }
+  };
   render() {
     return (
       <>
         {this.state.redirectToAddCoursePage && <Redirect to="/course" />}
         <h2>Courses</h2>
-        <button
-          style={{ marginBotton: 20 }}
-          className="btn btn-primary add-course"
-          onClick={() => this.setState({ redirectToAddCoursePage: true })}
-        >
-          Add Course
-        </button>
-        <CourseList courses={this.props.courses} />
+        {this.props.loading ? (
+          <Spinner />
+        ) : (
+          <>
+            <button
+              style={{ marginBottom: 20 }}
+              className="btn btn-primary add-course"
+              onClick={() => this.setState({ redirectToAddCoursePage: true })}
+            >
+              Add Course
+            </button>
+            <CourseList
+              onDeleteClick={this.handleDeleteCourse}
+              courses={this.props.courses}
+            />
+          </>
+        )}
       </>
     );
   }
@@ -53,6 +73,7 @@ CoursesPage.propTypes = {
   courses: PropTypes.array.isRequired,
   authors: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
+  loading: PropTypes.bool.isRequired,
 };
 
 //mapStateToProps(state, ownProps) -> own props can be used to pass component own props.
@@ -70,6 +91,7 @@ function mapStateToProps(state) {
             };
           }),
     authors: state.authors,
+    loading: state.apiCallsInProgress > 0,
   };
 }
 
@@ -79,6 +101,7 @@ function mapDispatchToProps(dispatch) {
       //createCourse: (course) => dispatch(coursesActions.createCourse(course)), -> Without bind action creators
       loadCourses: bindActionCreators(coursesActions.loadCourses, dispatch),
       loadAuthors: bindActionCreators(authorActions.loadAuthors, dispatch),
+      deleteCourse: bindActionCreators(coursesActions.deleteCourse, dispatch),
     },
   };
 }
